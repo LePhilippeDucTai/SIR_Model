@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib 
 import matplotlib.pyplot as plt
+from scipy.integrate import odeint
 class SIRModel:
    def __init__(self, sir_parameters):
       self.alpha = sir_parameters['alpha']
@@ -14,38 +15,26 @@ class SIRModel:
       self.I = np.zeros(n_iter)
       self.R = np.zeros(n_iter)
       self.D = np.zeros(n_iter)
+      self.x0 = [0, 0, 0, 0]
 
-   def initialize(self, s0, i0):
-      self.S[0] = s0
-      self.I[0] = i0
-      self.R[0] = 0
-      self.D[0] = 0
+   def initialize(self, s0, i0, r0, d0):
+      self.x0 = [s0, i0, r0, d0]
 
-   def Susceptible(self, s, i):
-      return -self.beta * s * i * self.dt + s
+   def SIRD(self, x, t):
+      s, i, r, d = x
+      dSdt =  -self.beta * s * i
+      dIdt = self.beta * s * i - (1 / self.lambd + self.alpha) * i
+      dRdt = (1. / self.lambd) * i
+      dDdt = self.alpha * i
+      return [dSdt, dIdt, dRdt, dDdt]
 
-   def Infected(self, s, i) :
-      return self.beta * s * i * self.dt - (1 / self.lambd + self.alpha) * i * self.dt + i
-
-   def Recovered(self, i, r) :
-      return (1 / self.lambd) * i * self.dt + r
-
-   def Dead(self, i, d):
-      return self.alpha * i * self.dt + d
-
-   def compute(self) :
-      for i in range(len(self.times) - 1):
-         self.S[i + 1] = self.Susceptible(self.S[i], self.I[i])
-         self.I[i + 1] = self.Infected(self.S[i], self.I[i])
-         self.R[i + 1] = self.Recovered(self.I[i], self.R[i])
-         self.D[i + 1] = self.Dead(self.I[i], self.D[i])
+   def SIRD_compute(self):
+      self.res = odeint(self.SIRD, self.x0, self.times)
 
    def plotcurves(self):
-      plt.plot(self.times, self.S, label = "Susceptible")
-      plt.plot(self.times, self.I, label = "Infected")
-      plt.plot(self.times, self.R, label = "Recovered")
-      plt.plot(self.times, self.D, label = "Dead")
-      plt.legend()
+      labels = ["Susceptible", "Infected", "Recovered", "Dead"]
+      plt.plot(self.times, self.res)
+      plt.legend(labels)
       plt.show()
 
       
